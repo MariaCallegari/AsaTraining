@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ALUMNO
+  PROFESOR
+}
+
+enum Nivel {
+  PRINCIPIANTE
+  INTERMEDIO
+  AVANZADO
+}
+
+enum Frecuencia {
+  DOS_DIAS
+  TRES_DIAS
+  PASE_LIBRE
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+// Se vincula al usuario de Clerk por clerkId (el rol también vive en
+// publicMetadata de Clerk para poder protegerlo desde el middleware,
+// pero acá queda la fuente de verdad para el resto de la app).
+model Usuario {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  nombre    String
+  email     String   @unique
+  rol       Rol
+  nivel     Nivel?
+  frecuencia Frecuencia?
+  creadoEn  DateTime @default(now())
+
+  rutinas RutinaAlumno[]
+}
+
+model Ejercicio {
+  id             String @id @default(cuid())
+  nombre         String
+  grupoMuscular  String
+
+  enPlantillas EjercicioPlantilla[]
+  enRutinas    EjercicioRutina[]
+}
+
+// Plantillas predeterminadas por nivel + frecuencia. Se clonan
+// a RutinaAlumno cuando el profesor se la asigna a alguien.
+model Plantilla {
+  id         String     @id @default(cuid())
+  nombre     String
+  nivel      Nivel
+  frecuencia Frecuencia
+
+  dias DiaPlantilla[]
+}
+
+model DiaPlantilla {
+  id          String    @id @default(cuid())
+  plantillaId String
+  diaSemana   DiaSemana
+
+  plantilla   Plantilla @relation(fields: [plantillaId], references: [id], onDelete: Cascade)
+  ejercicios  EjercicioPlantilla[]
+}
+
+model EjercicioPlantilla {
+  id            String @id @default(cuid())
+  diaPlantillaId String
+  ejercicioId   String
+  series        Int
+  repeticiones  Int
+
+  diaPlantilla  DiaPlantilla @relation(fields: [diaPlantillaId], references: [id], onDelete: Cascade)
+  ejercicio     Ejercicio    @relation(fields: [ejercicioId], references: [id])
+}
+
+// La rutina real y editable de cada alumno (nace de una plantilla,
+// pero el profesor puede modificarla libremente después).
+model RutinaAlumno {
+  id          String   @id @default(cuid())
+  alumnoId    String
+  nombre      String
+  activa      Boolean  @default(true)
+  creadaEn    DateTime @default(now())
+
+  alumno Usuario @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  dias   DiaRutina[]
+}
+
+model DiaRutina {
+  id         String    @id @default(cuid())
+  rutinaId   String
+  diaSemana  DiaSemana
+
+  rutina     RutinaAlumno @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
+  ejercicios EjercicioRutina[]
+}
+
+model EjercicioRutina {
+  id           String @id @default(cuid())
+  diaRutinaId  String
+  ejercicioId  String
+  series       Int
+  repeticiones Int
+  notas        String?
+
+  diaRutina  DiaRutina @relation(fields: [diaRutinaId], references: [id], onDelete: Cascade)
+  ejercicio  Ejercicio @relation(fields: [ejercicioId], references: [id])
+}
