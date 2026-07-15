@@ -3,13 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Rol {
   ALUMNO
   PROFESOR
+  ADMINISTRADOR
 }
 
 enum Nivel {
@@ -30,8 +32,6 @@ enum DiaSemana {
   MIERCOLES
   JUEVES
   VIERNES
-  SABADO
-  DOMINGO
 }
 
 // Se vincula al usuario de Clerk por clerkId (el rol también vive en

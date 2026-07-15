@@ -1,11 +1,17 @@
-import Link from "next/link";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
-export default function Home() {
+export default async function Page() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data: todos } = await supabase.from("todos").select();
+
   return (
-    <main style={{ padding: 40 }}>
-      <h1>Gimnasio</h1>
-      <p>Consultá o administrá rutinas de entrenamiento.</p>
-      <Link href="/sign-in">Iniciar sesión</Link>
-    </main>
+    <ul>
+      {todos?.map((todo) => (
+        <li key={todo.id}>{todo.id}</li>
+      ))}
+    </ul>
   );
 }
